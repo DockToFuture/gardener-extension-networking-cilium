@@ -24,10 +24,12 @@ import (
 	ciliumcmd "github.com/gardener/gardener-extension-networking-cilium/pkg/cmd"
 	ciliumcontroller "github.com/gardener/gardener-extension-networking-cilium/pkg/controller"
 	"github.com/gardener/gardener-extension-networking-cilium/pkg/healthcheck"
+	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener/extensions/pkg/util"
+	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -61,6 +63,14 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 		configFileOpts = &ciliumcmd.ConfigOptions{}
 
+		// options for the webhook server
+		webhookServerOptions = &webhookcmd.ServerOptions{
+			Namespace: os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
+		}
+
+		webhookSwitches = ciliumcmd.WebhookSwitchOptions()
+		webhookOptions  = webhookcmd.NewAddToManagerOptions(cilium.Name, webhookServerOptions, webhookSwitches)
+
 		aggOption = controllercmd.NewOptionAggregator(
 			generalOpts,
 			restOpts,
@@ -69,6 +79,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			controllercmd.PrefixOption("healthcheck-", healthCheckCtrlOpts),
 			reconcileOpts,
 			configFileOpts,
+			webhookOptions,
 		)
 	)
 
@@ -110,6 +121,13 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			ciliumCtrlOpts.Completed().Apply(&ciliumcontroller.DefaultAddOptions.Controller)
 			configFileOpts.Completed().ApplyHealthCheckConfig(&healthcheck.AddOptions.HealthCheckConfig)
 			healthCheckCtrlOpts.Completed().Apply(&healthcheck.AddOptions.Controller)
+
+			_, shootWebhooks, err := webhookOptions.Completed().AddToManager(ctx, mgr)
+			if err != nil {
+				return errors.Wrap(err, "Could not add webhooks to manager")
+			}
+
+			ciliumcontroller.DefaultAddOptions.ShootWebhooks = shootWebhooks
 
 			if err := ciliumcontroller.AddToManager(mgr); err != nil {
 				return fmt.Errorf("could not add controllers to manager: %w", err)

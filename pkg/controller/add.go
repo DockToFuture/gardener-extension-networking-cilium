@@ -21,6 +21,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/network"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -38,6 +39,8 @@ type AddOptions struct {
 	IgnoreOperationAnnotation bool
 	// UseProjectedTokenMount specifies whether the projected token mount shall be used for cilium.
 	UseProjectedTokenMount bool
+	// ShootWebhooks specifies the list of desired Shoot MutatingWebhooks.
+	ShootWebhooks []admissionregistrationv1.MutatingWebhook
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -49,7 +52,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	}
 
 	return network.Add(mgr, network.AddArgs{
-		Actuator:          NewActuator(extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot), opts.UseProjectedTokenMount),
+		Actuator:          NewActuator(extensioncontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot), opts.UseProjectedTokenMount, opts.ShootWebhooks, mgr.GetWebhookServer().Port),
 		ControllerOptions: opts.Controller,
 		Predicates:        network.DefaultPredicates(opts.IgnoreOperationAnnotation),
 		Type:              cilium.Type,

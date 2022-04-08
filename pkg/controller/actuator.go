@@ -21,6 +21,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/network"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/go-logr/logr"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,17 +37,22 @@ type actuator struct {
 	chartApplier         gardenerkubernetes.ChartApplier
 
 	useProjectedTokenMount bool
+
+	shootWebhooks     []admissionregistrationv1.MutatingWebhook
+	webhookServerPort int
 }
 
 // LogID is the id that will be used in log statements.
 const LogID = "network-cilium-actuator"
 
 // NewActuator creates a new Actuator that updates the status of the handled Network resources.
-func NewActuator(chartRendererFactory extensionscontroller.ChartRendererFactory, useProjectedTokenMount bool) network.Actuator {
+func NewActuator(chartRendererFactory extensionscontroller.ChartRendererFactory, useProjectedTokenMount bool, shootWebhooks []admissionregistrationv1.MutatingWebhook, webhookServerPort int) network.Actuator {
 	return &actuator{
 		logger:                 log.Log.WithName(LogID),
 		chartRendererFactory:   chartRendererFactory,
 		useProjectedTokenMount: useProjectedTokenMount,
+		shootWebhooks:          shootWebhooks,
+		webhookServerPort:      webhookServerPort,
 	}
 }
 

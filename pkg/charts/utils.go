@@ -21,6 +21,7 @@ import (
 	"github.com/gardener/gardener-extension-networking-cilium/pkg/cilium"
 	"github.com/gardener/gardener-extension-networking-cilium/pkg/imagevector"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 )
 
@@ -88,6 +89,12 @@ var defaultGlobalConfig = globalConfig{
 	PodCIDR:                "",
 	UseProjectedTokenMount: false,
 	BPFSocketLBHostnsOnly: bpfSocketLBHostnsOnly{
+		Enabled: false,
+	},
+	LocalRedirectPolicy: localRedirectPolicy{
+		Enabled: false,
+	},
+	NodeLocalDNS: nodeLocalDNS{
 		Enabled: false,
 	},
 }
@@ -169,5 +176,12 @@ func generateChartValues(config *ciliumv1alpha1.NetworkConfig, network *extensio
 	if config.BPFSocketLBHostnsOnly != nil {
 		globalConfig.BPFSocketLBHostnsOnly.Enabled = config.BPFSocketLBHostnsOnly.Enabled
 	}
+
+	// If node local dns feature is enabled, enable local redirect policy
+	if cluster.Shoot.Annotations[v1beta1constants.AnnotationNodeLocalDNS] == "true" {
+		globalConfig.NodeLocalDNS.Enabled = true
+		globalConfig.LocalRedirectPolicy.Enabled = true
+	}
+
 	return requirementsConfig, globalConfig, nil
 }

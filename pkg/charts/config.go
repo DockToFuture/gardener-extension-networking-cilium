@@ -33,6 +33,8 @@ type globalConfig struct {
 	PodCIDR                string                                  `json:"podCIDR"`
 	UseProjectedTokenMount bool                                    `json:"useProjectedTokenMount bool"`
 	BPFSocketLBHostnsOnly  bpfSocketLBHostnsOnly                   `json:"bpfSocketLBHostnsOnly"`
+	LocalRedirectPolicy    localRedirectPolicy                     `json:"localRedirectPolicy"`
+	NodeLocalDNS           nodeLocalDNS                            `json:"nodeLocalDNS"`
 }
 
 // etcd related configuration for cilium
@@ -124,5 +126,13 @@ type config struct {
 }
 
 type bpfSocketLBHostnsOnly struct {
+	Enabled bool `json:"enabled"`
+}
+
+type localRedirectPolicy struct {
+	Enabled bool `json:"enabled"`
+}
+
+type nodeLocalDNS struct {
 	Enabled bool `json:"enabled"`
 }
